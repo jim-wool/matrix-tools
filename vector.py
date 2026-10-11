@@ -13,7 +13,6 @@ def vec_dot(u: vector, v: vector) -> float|Fraction:
     return res
 
 def scalar(k: float|Fraction, v: vector) -> vector:
-    print(f'k: {k}, v: {v}')
     return [k*u for u in v]
 
 def norm(v: vector) -> float:
@@ -40,8 +39,7 @@ def gram_schmidt(b: base) -> base:
     for i in range(n):
         orthonormalized: vector = b[i]
         for j in range(i):
-            print(f"{i} - {orthonormalized} & {orthonormal_b[j]} and {vec_dot(b[i], orthonormal_b[j])} and {-1*scalar(vec_dot(b[i], orthonormal_b[j]), orthonormal_b[j])}")
-            orthonormalized = vec_sum(orthonormalized, -1*scalar(vec_dot(b[i], orthonormal_b[j]), orthonormal_b[j]))
+            orthonormalized = vec_sum(orthonormalized, scalar(-vec_dot(b[i], orthonormal_b[j]), orthonormal_b[j]))
         orthonormal_b[i] = scalar(1/norm(orthonormalized), orthonormalized)
     return orthonormal_b
 
