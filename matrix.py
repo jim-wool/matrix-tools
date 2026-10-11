@@ -55,11 +55,20 @@ def transpose(M: mat) -> mat:
             L[i][j] = M[j][i]
     return L
 
-def print_mat(M: mat) -> None:
+def get_mat_padding(M: mat) -> int:
+    res: list[int] = []
+    for i in range(len(M)):
+        for j in range(len(M[0])):
+            res.append(len(str(M[i][j])))
+    return max(res)
+
+def print_mat(M: mat, spacing: int = 2) -> None:
     n = len(M)
+    padding = spacing*get_mat_padding(M)
     for i in range(n):
         for j in range(n):
-            print(M[i][j], end=f"|")
+            pad = " "*(padding-len(str(M[i][j])))
+            print(M[i][j], end=pad)
         print()
 
 def fractionize(M: mat) -> mat:
@@ -165,16 +174,15 @@ def cholesky(M: mat) -> mat|None:
     L = gen_null_mat(n)
     return L
 
-# A = fractionize([
-#     [3, 2, 1],
-#     [1, 3, 2],
-#     [2, 4, 6],
-# ])
+A = fractionize([
+    [3, 2, 1],
+    [1, 3, 2],
+    [2, 4, 6],
+])
 
-# L, U = LU(A);
-# print(det(A))
+L, U = LU(A);
 
-# if L != None and U != None:
-#     print_mat(U);
-#     print()
-#     print_mat(L)
+if L != None and U != None:
+    print_mat(U);
+    print()
+    print_mat(L)
