@@ -2,6 +2,7 @@ from random import randint
 from copy import deepcopy
 from typing import cast
 from fractions import Fraction
+from vector import gram_schmidt
 
 type mat = list[list[float|Fraction]]
 type real_mat = list[list[float]]
@@ -156,8 +157,8 @@ def mult(M: mat, N: mat) -> mat|None:
     return P
 
 def LU(M: mat) -> tuple[mat|None, mat|None] :
-    n = len(M)
     if det(M) == 0: return (None, None)
+    n = len(M)
     L_list: list[mat] = []
     U = echelon(M, L_list)
     l = gen_null_mat(n)
@@ -166,6 +167,14 @@ def LU(M: mat) -> tuple[mat|None, mat|None] :
     for i in range(len(L_list)):
         l = cast(mat, mult(l, L_list[i]))
     return (l, U)
+
+# A = QR => R = t(Q)A
+def QR(M: mat) -> tuple[mat|None, mat|None]:
+    if det(M) == 0: return (None, None)
+    cols = transpose(M)
+    Q: mat = gram_schmidt(cols)
+    R = mult(transpose(Q), M)
+    return (Q, R)
 
 def cholesky(M: mat) -> mat|None:
     if not is_sym_pos_def(M): return None
@@ -180,9 +189,21 @@ A = fractionize([
     [2, 4, 6],
 ])
 
-L, U = LU(A);
+B = fractionize([
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 2]
+])
 
-if L != None and U != None:
-    print_mat(U);
+Q, R = QR(B)
+if Q!=None and R!=None:
+    print_mat(Q)
     print()
-    print_mat(L)
+    print_mat(R)
+
+# L, U = LU(A);
+
+# if L != None and U != None:
+#     print_mat(U);
+#     print()
+#     print_mat(L)
