@@ -48,5 +48,3 @@ b: base = [
     [1, 1, 0],
     [1, 1, 1]
 ]
-
-print(gram_schmidt(b))

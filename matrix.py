@@ -176,30 +176,39 @@ def QR(M: mat) -> tuple[mat|None, mat|None]:
     R = mult(transpose(Q), M)
     return (Q, R)
 
-def cholesky(M: mat) -> mat|None:
-    if not is_sym_pos_def(M): return None
+def cholesky(M: mat) -> tuple[mat|None, mat|None]:
+    if not is_sym_pos_def(M): return (None, None)
     # L triangular, inf, positive diagonally A = L*Tr(L)
     n = len(M)
     L = gen_null_mat(n)
-    return L
+    for i in range(n):
+        for j in range(i+1):
+            s = 0
+            for k in range(j):
+                s += L[i][k]*L[j][k]
+            if i == j:
+                L[i][i] = (M[i][i] - s)**0.5
+            else:
+                L[i][j] = (M[i][j] - s)/L[j][j]
+    return (L, transpose(L))
 
-A = fractionize([
-    [3, 2, 1],
-    [1, 3, 2],
-    [2, 4, 6],
-])
+# A = fractionize([
+#     [3, 2, 1],
+#     [1, 3, 2],
+#     [2, 4, 6],
+# ])
 
-B = fractionize([
-    [1, 0, 0],
-    [0, 1, 0],
-    [0, 0, 2]
-])
+# B = fractionize([
+#     [1, 0, 0],
+#     [0, 1, 0],
+#     [0, 0, 2]
+# ])
 
-Q, R = QR(B)
-if Q!=None and R!=None:
-    print_mat(Q)
-    print()
-    print_mat(R)
+# Q, R = QR(B)
+# if Q!=None and R!=None:
+#     print_mat(Q)
+#     print()
+#     print_mat(R)
 
 # L, U = LU(A);
 
@@ -207,3 +216,18 @@ if Q!=None and R!=None:
 #     print_mat(U);
 #     print()
 #     print_mat(L)
+
+
+# C = fractionize([
+#     [9, 6, 3],
+#     [6, 8, 4],
+#     [3, 4, 6]
+# ])
+# L, tL = cholesky(C)
+
+# if L != None and tL != None:
+#     print_mat(L)
+#     print()
+#     print_mat(tL)
+#     print()
+#     print_mat(cast(mat, mult(L, tL)))
