@@ -2,7 +2,7 @@ from random import randint
 from copy import deepcopy
 from typing import cast
 from fractions import Fraction
-from vector import gram_schmidt
+from vector import gram_schmidt, real_vector
 
 type mat = list[list[float|Fraction]]
 type real_mat = list[list[float]]
@@ -115,6 +115,14 @@ def echelon(M: mat, L_list: list[mat]=[]) -> mat:
     _echelon(L, L_list)
     return L
 
+def det_ech(M: mat, permutations: int = 0) -> float|Fraction:
+    n = len(M)
+    if n == 1: return M[0][0]
+    if n == 2: return M[0][0] * M[1][1] - M[0][1] * M[1][0]
+    res = 1
+    for i in range(n):
+        res *= M[i][i]
+    return (-1)**permutations *res
 
 def _det(M: mat) -> float|Fraction:
     n = len(M)
@@ -156,6 +164,16 @@ def mult(M: mat, N: mat) -> mat|None:
                 P[i][j] += M[i][k]*N[k][j]
     return P
 
+def mat_sum(M: mat, N: mat) -> mat|None:
+    n, p = len(M), len(M[0])
+    q, r = len(N), len(N[0])
+    if not (n==q and p == r): return None
+    S = gen_null_mat_np(n, p)
+    for i in range(n):
+        for j in range(p):
+            S[i][j] = M[i][j] + N[i][j]
+    return S
+
 def LU(M: mat) -> tuple[mat|None, mat|None] :
     if det(M) == 0: return (None, None)
     n = len(M)
@@ -178,7 +196,6 @@ def QR(M: mat) -> tuple[mat|None, mat|None]:
 
 def cholesky(M: mat) -> tuple[mat|None, mat|None]:
     if not is_sym_pos_def(M): return (None, None)
-    # L triangular, inf, positive diagonally A = L*Tr(L)
     n = len(M)
     L = gen_null_mat(n)
     for i in range(n):
@@ -191,6 +208,18 @@ def cholesky(M: mat) -> tuple[mat|None, mat|None]:
             else:
                 L[i][j] = (M[i][j] - s)/L[j][j]
     return (L, transpose(L))
+
+def solve_tri_sup(A: mat, b: real_vector) -> real_vector | None:
+    if det_ech(A) == 0: return None
+    n = len(A)
+    sol: real_vector = [0] * n
+    for i in range(n-1, -1, -1):
+        s = b[i]
+        for j in range(i+1, n):
+            s += -1*A[i][j]*sol[j]
+        sol[i] = s/A[i][i]
+    return sol
+    
 
 # A = fractionize([
 #     [3, 2, 1],
