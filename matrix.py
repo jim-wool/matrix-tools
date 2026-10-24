@@ -3,6 +3,7 @@ from copy import deepcopy
 from typing import cast
 from fractions import Fraction
 from vector import gram_schmidt, real_vector
+import numpy as np
 
 type mat = list[list[float|Fraction]]
 type real_mat = list[list[float]]
@@ -146,11 +147,19 @@ def is_sym(M: mat) -> bool:
             if M[i][j] != L[i][j]: return False
     return True
 
-def is_sym_pos_def(M: mat) -> bool:
-    if not is_sym(M): return False
-    n = len(M)
-    for k in range(n+1):
-        if det(M[0:k][0:k]) <= 0: return False
+def det_k(A: mat, k: int) -> float|Fraction:
+    M = gen_null_mat(k)
+    for i in range(k):
+        for j in range(k):
+            M[i][j] = A[i][j]
+    print(M)
+    return det(M)
+
+def sym_pos_def(A: mat) -> bool:
+    if not is_sym(A): return False
+    n = len(A)
+    for k in range(1, n+1):
+        if det_k(A, k) <= 0: return False
     return True
 
 def mult(M: mat, N: mat) -> mat|None:
@@ -195,7 +204,7 @@ def QR(M: mat) -> tuple[mat|None, mat|None]:
     return (Q, R)
 
 def cholesky(M: mat) -> tuple[mat|None, mat|None]:
-    if not is_sym_pos_def(M): return (None, None)
+    if not sym_pos_def(M): return (None, None)
     n = len(M)
     L = gen_null_mat(n)
     for i in range(n):
@@ -219,44 +228,49 @@ def solve_tri_sup(A: mat, b: real_vector) -> real_vector | None:
             s += -1*A[i][j]*sol[j]
         sol[i] = s/A[i][i]
     return sol
-    
 
-# A = fractionize([
-#     [3, 2, 1],
-#     [1, 3, 2],
-#     [2, 4, 6],
-# ])
+def cofactor_ij(M: mat, i: int, j: float) -> float|Fraction:
+    # remove the ith line and the jth column
+    C = deepcopy(M);
+    C.remove(C[i]);
+    for k in range(len(M)-1):
+        C[k].remove(C[k][j]) # type: ignore
+    exp: int = pow(-1, int(i+j))
+    return det(C)*exp;
 
-# B = fractionize([
-#     [1, 0, 0],
-#     [0, 1, 0],
-#     [0, 0, 2]
-# ])
+def adjoint(M: mat) -> mat:
+    n = len(M)
+    A = gen_null_mat(n)
+    for i in range(n):
+        for j in range(n):
+            A[i][j] = cofactor_ij(M, i, j)
+    return A
 
-# Q, R = QR(B)
-# if Q!=None and R!=None:
-#     print_mat(Q)
-#     print()
-#     print_mat(R)
+def scalar_m(M: mat, a: float|Fraction) -> mat:
+    return [[a* M[i][j] for j in range(len(M[0]))] for i in range(len(M))]
 
-# L, U = LU(A);
+def inverse(M: mat) -> mat|None:
+    d = det(M)
+    if d == 0: return None
+    return scalar_m(transpose(adjoint(M)), 1/d)
 
-# if L != None and U != None:
-#     print_mat(U);
-#     print()
-#     print_mat(L)
+# tMM = S^2
+# S = tPsqrt(D)P
+# M = OS =>      
 
-
-# C = fractionize([
-#     [9, 6, 3],
-#     [6, 8, 4],
-#     [3, 4, 6]
-# ])
-# L, tL = cholesky(C)
-
-# if L != None and tL != None:
-#     print_mat(L)
-#     print()
-#     print_mat(tL)
-#     print()
-#     print_mat(cast(mat, mult(L, tL)))
+def OS(M: mat) -> tuple[mat|None, mat|None]:
+    if det(M) == 0: return (None, None)
+    SS = mult(transpose(M), M);
+    eigenvalues, eigenvectors = np.linalg.eigh(np.array(SS, dtype=float))
+    eigenvectors: mat = np.array(eigenvectors).tolist()
+    eigenvalues = np.array(eigenvalues).tolist()
+    n = len(M)
+    P = gen_null_mat(n)
+    for i in range(n):
+        for j in range(n):
+            P[i][j] = eigenvectors[i][j]
+    D: mat = np.array(np.sqrt(np.diag(eigenvalues))).tolist()
+    s = cast(mat, mult(transpose(P), D))
+    s = cast(mat, mult(s, P));
+    O = mult(M, cast(mat, inverse(s)))
+    return O, s
