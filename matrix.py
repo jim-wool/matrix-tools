@@ -1,8 +1,8 @@
 from random import randint
 from copy import deepcopy
-from typing import cast
+from typing import cast, Callable
 from fractions import Fraction
-from vector import gram_schmidt, real_vector
+from vector import gram_schmidt, real_vector, vector, vec_sum, scalar
 import numpy as np
 
 type mat = list[list[float|Fraction]]
@@ -21,6 +21,14 @@ def gen_random_mat(n: int, max_val: int) -> mat:
         for _ in range(n):
             M[i].append(randint(0, max_val)) # type: ignore
     return M # type: ignore
+
+def mult_mv(M: mat, v: vector) -> vector:
+    n = len(M)
+    P: vector = [0] * n
+    for i in range(n):
+        for k in range(n):
+            P[i] += M[i][k]*v[k]
+    return P
 
 # p(i, j) = In - Eii - Ejj + Eij + Eji
 def permutation_mat(n: int, i: int, j: int) -> mat:
@@ -274,3 +282,71 @@ def OS(M: mat) -> tuple[mat|None, mat|None]:
     s = cast(mat, mult(s, P));
     O = mult(M, cast(mat, inverse(s)))
     return O, s
+
+def jacobi(A: mat, b: vector, X0: vector, nn: int, norm: Callable[[vector], float]) -> tuple[vector,list[float]]:
+    n = len(A)
+    E = gen_null_mat_np(n, n)
+    F = gen_null_mat_np(n, n)
+    D = gen_null_mat_np(n, n)
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                D[i][j] = A[i][j]
+            elif i < j:
+                E[i][j] = -A[i][j]
+            else:
+                F[i][j] = -A[i][j]
+    epsilons: list[float] = []
+    xs: list[vector] = [X0]
+    k = 0
+    inv_D = cast(mat, inverse(D))
+    epsilons.append(norm(vec_sum(mult_mv(A, xs[k]), scalar(-1, b))))
+    while k <= nn:
+        eplusf = mat_sum(E, F)
+        Xk = xs[k]
+        prod = mult_mv(cast(mat, eplusf), Xk)
+        prodplusb = vec_sum(prod, b)
+        xs.append( mult_mv(inv_D, prodplusb))
+        k += 1
+        epsilons.append(norm(vec_sum(mult_mv(A, xs[k]), scalar(-1, b))))
+    return xs[k], epsilons
+
+def norm_p(v: vector, p: int) -> float:
+    res = 0
+    for u in v:
+        res += (abs(u))**p
+    return res ** (1/p)
+
+def norm_inf(v: vector) -> float|Fraction:
+    return max([abs(u) for u in v])
+
+# (D-E)X_k+1 = FX_k + b
+# Xk+1 = (D-E)^-1*(F)
+def gauss_seidel(A: mat, b: vector, X0: vector, nn: int, norm: Callable[[vector], float]) -> tuple[vector, list[float]]:
+    n = len(A)
+    E = gen_null_mat_np(n, n)
+    F = gen_null_mat_np(n, n)
+    D = gen_null_mat_np(n, n)
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                D[i][j] = A[i][j]
+            elif i < j:
+                # here
+                E[i][j] = A[i][j]
+            else:
+                F[i][j] = -A[i][j]
+    epsilons: list[float] = []
+    xs: list[vector] = [X0]
+    k = 0
+    dmoinse = mat_sum(D, E)
+    inv_dmoinse = cast(mat, inverse(cast(mat, dmoinse)))
+    epsilons.append(norm(vec_sum(mult_mv(A, xs[k]), scalar(-1, b))))
+    while k <= nn:
+        Xk = xs[k]
+        prod = mult_mv(F, Xk)
+        prodplusb = vec_sum(prod, b)
+        xs.append(mult_mv(inv_dmoinse, prodplusb))
+        k += 1
+        epsilons.append(norm(vec_sum(mult_mv(A, xs[k]), scalar(-1, b))))
+    return xs[k], epsilons
